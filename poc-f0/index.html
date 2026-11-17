@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>OLFA PoC F0 — connectivity test (TEST ONLY)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>OLFA connectivity PoC — option F0 (direct fetch)</h1>
+    <p class="banner">TEST ONLY. Document F, Revision 10.4. No OLFA data, no LIVE deployment, no LIVE secrets.</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>1. Configuration</h2>
+      <div class="grid">
+        <label>Web app URL (ends in /exec)
+          <input id="cfgUrl" type="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/.../exec">
+        </label>
+        <label>TEST tooling key (kept in memory only)
+          <input id="cfgToolKey" type="password" autocomplete="off" spellcheck="false">
+        </label>
+        <label>TEST user name
+          <input id="cfgUser" type="text" autocomplete="off" spellcheck="false" value="poc_tester">
+        </label>
+        <label>TEST PIN (kept in memory only)
+          <input id="cfgPin" type="password" autocomplete="off" inputmode="numeric">
+        </label>
+        <label>Tester
+          <input id="metaTester" type="text" autocomplete="off">
+        </label>
+        <label>Device (model, e.g. "Dell Latitude 5420", "Samsung A54")
+          <input id="metaDevice" type="text" autocomplete="off">
+        </label>
+        <label>Browser version (exact)
+          <input id="metaBrowserVersion" type="text" autocomplete="off">
+        </label>
+        <label>OS version (exact)
+          <input id="metaOsVersion" type="text" autocomplete="off">
+        </label>
+      </div>
+      <p class="hint" id="uaHint"></p>
+    </section>
+
+    <section>
+      <h2>2. Cell (F3)</h2>
+      <div class="grid">
+        <label>Browser and platform
+          <select id="cellB">
+            <option value="B1">B1 — Chrome / Windows</option>
+            <option value="B2">B2 — Edge / Windows</option>
+            <option value="B3">B3 — Firefox / Windows</option>
+            <option value="B4">B4 — Safari / macOS</option>
+            <option value="B5">B5 — Chrome / Android</option>
+            <option value="B6">B6 — Samsung Internet / Android</option>
+            <option value="B7">B7 — Safari / iOS</option>
+          </select>
+        </label>
+        <label>Google sign-in state
+          <select id="cellG">
+            <option value="G1">G1 — signed out</option>
+            <option value="G2">G2 — one Google account</option>
+            <option value="G3">G3 — several Google accounts</option>
+            <option value="G4">G4 — private window</option>
+          </select>
+        </label>
+        <div class="cellbox">Cell: <strong id="cellId">F0-B1-G1-TP0</strong><br>
+          <span class="hint">TP0 only. F0 TP1 is N/A by F3 (no third-party frame or storage).</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. Run</h2>
+      <div class="buttons">
+        <button id="btnCheck" type="button">Check connection</button>
+        <button id="btnRunCell" type="button" class="primary">Run full cell</button>
+        <button id="btnStop" type="button" disabled>Stop after current step</button>
+      </div>
+      <div class="buttons">
+        <label class="inline">Case
+          <select id="oneCase"></select>
+        </label>
+        <label class="inline">Run
+          <select id="oneRun"><option>1</option><option>2</option><option>3</option></select>
+        </label>
+        <button id="btnRunOne" type="button">Run this case once</button>
+        <button id="btnLatency" type="button">Record latency verdict (LAT)</button>
+      </div>
+      <p class="hint">A full cell takes about 70 minutes: C10 and C14 each run for several minutes, three times. Keep the screen on and the page in the foreground (especially on Android and iOS). C9 needs the tester to cut and restore the network.</p>
+      <div id="status" class="status">Idle.</div>
+    </section>
+
+    <section>
+      <h2>4. Results in this session</h2>
+      <table id="results">
+        <thead><tr><th>Time</th><th>Cell</th><th>Case</th><th>Run</th><th>Result</th><th>Reason</th><th>Saved to records sheet</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <h3>Log</h3>
+      <pre id="log"></pre>
+    </section>
+
+    <section>
+      <h2>5. Evidence and decision (F6, F7)</h2>
+      <div class="buttons">
+        <button id="btnExport" type="button">Download this cell's records (JSON)</button>
+        <button id="btnTiming" type="button">Download this cell's timing file (CSV)</button>
+        <button id="btnSummary" type="button">Show matrix summary (all 28 cells)</button>
+      </div>
+      <div class="grid">
+        <label>N/A for (case, or CELL for the whole cell)
+          <select id="naCase"></select>
+        </label>
+        <label>Reason (required; reviewed by the Owner)
+          <input id="naReason" type="text" autocomplete="off">
+        </label>
+      </div>
+      <div class="buttons">
+        <button id="btnNA" type="button">Record N/A (never for an attempted and failed case)</button>
+      </div>
+      <div id="summary"></div>
+    </section>
+
+    <section>
+      <h2>Evidence helper: redact a HAR file (local only)</h2>
+      <p class="hint">A HAR saved from the browser contains the test token in the login response and later request bodies, and the tooling key in tool requests. Choose the HAR file here; the redacted copy is downloaded. Nothing is uploaded. Archive only the redacted copy.</p>
+      <div class="buttons">
+        <input id="harFile" type="file" accept=".har,application/json">
+        <button id="btnRedact" type="button">Redact and download</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Setup helper: generate a TEST tooling key (local only)</h2>
+      <p class="hint">Generated in this browser with crypto.getRandomValues. Nothing is sent anywhere. Paste it into the Script Property INIT_TOOL_KEY, and into the tooling key field above when testing.</p>
+      <div class="buttons">
+        <button id="btnGenKey" type="button">Generate 256-bit key</button>
+        <input id="genKey" type="text" readonly spellcheck="false" class="mono wide">
+      </div>
+    </section>
+  </main>
+
+  <div id="overlay" class="overlay" hidden>
+    <div class="dialog">
+      <p id="overlayMsg"></p>
+      <div id="overlayButtons" class="buttons"></div>
+    </div>
+  </div>
+
+  <script src="js/transport.js"></script>
+  <script src="js/record.js"></script>
+  <script src="js/cases.js"></script>
+  <script src="js/runner.js"></script>
+</body>
+</html>
